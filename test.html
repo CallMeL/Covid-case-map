@@ -14,20 +14,41 @@
         html,
         body,
         #baiduMap {
-            width: 100%;
-            height: 100%;
-            margin: 0px;
-            padding: 0px;
+            width: 80%;
+            height: 95%;
             overflow: hidden;
+            position: relative;
+            margin: auto;
+            float: left;
         }
 
         body,
         html {
             width: 100%;
             height: 100%;
-            margin: 0;
             font-family: "Microsoft YaHei";
             overflow: hidden;
+            background-color: #e7e6e2;
+        }
+
+
+        .sidebar {
+            position: absolute;
+            right:0;
+            /*侧边栏居左，改为right可令侧边栏居右*/
+            
+            width: 20%;
+            height: 100%;
+
+            background: #a4f;
+            color: black;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            padding: 10px 0;
+            background: #e7e6e2;
         }
 
         #allmap {
@@ -42,19 +63,19 @@
             position: absolute;
             top: 0;
             left: 0;
-            background: #fff;
+            background: #e7e6e2;
             padding: 20px;
         }
 
         .r-text {
-            margin: 0 200px;
+            float: left;
         }
 
         #r-result input {
             margin: 0 10px 0 0;
             height: 32px;
             padding: 0 10px;
-            width: 280px;
+            width: 150px;
             line-height: 32px;
             border: 1px solid #d7d8d9;
             border-radius: 2px;
@@ -79,7 +100,7 @@
         }
 
         .info_ui_img {
-            background-image: url("images/error.png");
+            background-image: url("images/danger.png");
             background-position: 97% 0%;
             background-repeat: no-repeat;
             background-size: 50px;
@@ -126,24 +147,48 @@
             text-align: center;
             margin-top: 10px;
         }
+
+        .intro {
+            font-size: 25px;
+            color: black;
+            font-weight: bolder;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+
+        .map {
+            display: block;
+        }
     </style>
 </head>
 
 <body>
-    <div id="container"></div>
-    <div id="baiduMap"></div>
+   
+    <div class="map" id="baiduMap"></div>
     <!-- 搜索显示框 -->
-    <div id="r-result">
-        <div class="r-text">
-            病例编号: <input id="cityName" type="text" />
-            <!-- <button onclick="theLocation()">搜索</button> -->
-            <button onclick="setPoint()">搜索</button>
-            经度：<input type="text" id="lng" />
-            纬度：<input type="text" id="lat" />
-            <button onclick="submit()">提交</button>
+    <div class="sidebar">
+        <div>
+            1234
         </div>
     </div>
+    <div id="r-result">
+        
+        <div class="intro">
+            石家庄新冠感染病例传染可视化
+        </div>
+        <div class="r-text">
+            输入病例编号: <input id="cityName" type="text" />
+            <!-- <button onclick="theLocation()">搜索</button> -->
+            <button onclick="setPoint()">搜索</button>
 
+            <!-- 经度：<input type="text" id="lng" />
+            纬度：<input type="text" id="lat" /> -->
+            <button onclick="searchAll()">展示全部</button>
+        </div>
+        
+    </div>
+    <div class="footer">some information</div>
+    
     <!-- js文件 -->
     <script type="text/javascript" src="http://api.map.baidu.com/api?key=&v=1.3&services=true"></script>
     <!-- 页面js文件 -->
@@ -151,6 +196,7 @@
         // 创建假数据
         var searchResult
         var id
+        var color = ['']
         var pointArr = [{
             "lng": 114.75845,
             "lat": 38.296983,
@@ -179,7 +225,7 @@
             minZoom: 5,
             maxZoom: 19
         });
-
+        var tempID;
         // 初始化地图，设置中心点和显示级别
         //map.centerAndZoom(new BMap.Point(114.75845, 38.296983), 15);
 
@@ -204,12 +250,21 @@
                 map: map
             }
         });
-
+        function randColor() {
+            return '#' +
+                (function (color) {
+                    return (color += '0123456789abcdef'[Math.floor(Math.random() * 16)])
+                        && (color.length == 6) ? color : arguments.callee(color);
+                })('')
+        }
+        var getRandomColor = function () {
+            return '#' + (Math.random() * 0xffffff << 0).toString(16);
+        }
         // 发起检索
         function setPoint() {
             var SearchId = document.getElementById("cityName").value;
             var found = 0;
-            var index = 0;
+
             //var mydata = JSON.parse("track.json");
             fetch("track.json")
                 .then(Response => Response.json())
@@ -218,23 +273,22 @@
                     console.log(SearchId)
                     // or whatever you wanna do with the data
                     data.forEach(element => {
-                        index = index + 1;
-                        if (index == SearchId) {
-                            element
+                        if (element.id == SearchId) {
+                            tempID = element.id;
                             found = 1;
                             map.clearOverlays();
                             var newPoint = element.point
                             console.log(newPoint);
                             map.centerAndZoom(new BMap.Point(114.75845, 38.296983), 10);
                             map.centerAndZoom(newPoint[0], 10);
-                            
+
                             var polyline = new BMap.Polyline(newPoint, {
                                 strokeColor: "#0C8816",
                                 strokeWeight: 3,
                                 setStrokeStyle: "dashed",
                                 strokeOpacity: 1
                             });
-                            addMarker(newPoint,polyline);
+                            addMarker(newPoint, polyline, element.id);
                             map.addOverlay(polyline);
 
                         } else {
@@ -257,14 +311,40 @@
         };
 
         // 弹出经纬度 
-        function submit() {
-            var lat = document.getElementById('lat');
-            var lng = document.getElementById('lng');
-            alert("经度：" + lng.value + "\n" + "纬度：" + lat.value);
+        function searchAll() {
+            map.clearOverlays();
+
+            fetch("track.json")
+                .then(Response => Response.json())
+                .then(data => {
+                    alert("现在展示" + data.length + "个病例的轨迹");
+                    data.forEach(element => {
+                        tempID = element.id;
+                        found = 1;
+                        var newPoint = element.point
+                        console.log(newPoint);
+                        map.centerAndZoom(new BMap.Point(114.75845, 38.296983), 10);
+                        map.centerAndZoom(newPoint[0], 10);
+
+                        var polyline = new BMap.Polyline(newPoint, {
+                            strokeColor: getRandomColor(),
+                            strokeWeight: 3,
+                            setStrokeStyle: "dashed",
+                            strokeOpacity: 1
+                        });
+                        addMarker(newPoint, polyline, element.id);
+                        map.addOverlay(polyline);
+                    });
+                    if (found == 0) {
+                        alert("no id found!")
+                    }
+                });
+
+
         };
 
         // 将覆盖物（线）添加到地图上
-        function addMarker(points,polyline) {
+        function addMarker(points, polyline, id) {
             var point, marker;
             // 创建标注对象并添加到地图
             for (var i = 0, pointsLen = points.length; i < pointsLen; i++) {
@@ -272,8 +352,8 @@
                 console.log(point)
                 var myIcon;
                 // 判断正常或者故障，根据不同装填显示不同Icon
-                if (points[i].type == "故障") {
-                    myIcon = new BMap.Icon("images/fault.png", new BMap.Size(32, 32), {
+                if (points[i].type == "感染") {
+                    myIcon = new BMap.Icon("images/infact.png", new BMap.Size(32, 32), {
                         // 指定定位位置
                         offset: new BMap.Size(16, 32),
                         // 当需要从一幅较大的图片中截取某部分作为标注图标时，需要指定大图的偏移位置    
@@ -297,7 +377,7 @@
                 (function () {
                     var thePoint = points[i];
                     marker.addEventListener("click", function () {
-                        showInfo(this, thePoint,i);
+                        showInfo(this, thePoint, id);
                     });
                 })();
             }
@@ -305,17 +385,18 @@
 
 
 
-        function showInfo(thisMaker, point,i) {
+        function showInfo(thisMaker, point, id) {
+            //var SearchId = document.getElementById("cityName").value;
             var sContent = '';
-            if (point.type == "故障") {
+            if (point.type == "感染") {
                 sContent += '<ul class="info_ul info_ui_img">';
                 sContent += '   <li class="info_lierr">';
-                sContent += '       <span class="info_span">出车状态：</span>';
-                sContent += '       <span>' + point.type + '</span>';
+                sContent += '       <span class="info_span">健康状态：</span>';
+                sContent += '       <span>' + '确诊' + '</span>';
                 sContent += '   </li>';
                 sContent += '   <li class="info_lierr">';
-                sContent += '       <span class="info_span">机器编号：</span>';
-                sContent += '       <span>' + '病例：'+i+ '</span>';
+                sContent += '       <span class="info_span">病例编号：</span>';
+                sContent += '       <span>' + id + '</span>';
                 sContent += '   </li>';
                 sContent += '   <li class="info_lierr">';
                 sContent += '       <span class="info_span">所在地点：</span>';
@@ -328,12 +409,12 @@
             } else {
                 sContent += '<ul class="info_ul info_ui_Nimg">';
                 sContent += '   <li class="info_li">';
-                sContent += '       <span class="info_span">出车状态：</span>';
+                sContent += '       <span class="info_span">健康状态</span>';
                 sContent += '       <span>' + point.type + '</span>';
                 sContent += '   </li>';
                 sContent += '   <li class="info_li">';
-                sContent += '       <span class="info_span">机器编号：</span>';
-                sContent += '       <span>' + point.name + '</span>';
+                sContent += '       <span class="info_span">病例编号：</span>';
+                sContent += '       <span>' + id + '</span>';
                 sContent += '   </li>';
                 sContent += '   <li class="info_li">';
                 sContent += '       <span class="info_span">所在地点：</span>';
